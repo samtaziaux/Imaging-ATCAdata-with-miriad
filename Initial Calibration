@@ -141,7 +141,7 @@ uvplt vis=1213-172.2100 stokes=xx,yy axis=freq,phase device=/xs options=nobase,n
 ### Correct flux scale (NOT NEEDED IF 1934) ###
 ###############################################
 
-mfboot vis=0823-500.2100,1213-172.2100 select='source(1934-638)’
+mfboot vis=0823-500.2100,1213-172.2100 select='source(1934-638)'
 
 ##################################
 #### - Imaging Preparation - #####
