@@ -1,0 +1,89 @@
+##############################
+### - Imaging w/o splitting - ###
+##############################
+
+
+#### SELF-CALIBRATION
+
+### But you can put directly all the measurment files together using uvcat. 
+
+uvcat vis=ngc5253_p1.2100.aver,ngc5253_p2.2100.aver,ngc5253_p3.2100.aver out=ngc5253.2100
+uvaver vis=ngc5253.2100 out=ngc5253.2100.aver
+
+
+### The mask are created choosing first a high threshold (50sigma) or 500 to 1000 iterations and create them manually in carta. 
+
+invert options=mfs,double,sdb vis=ngc5253.2100.aver map=ngc5253.2100.imap beam=ngc5253.2100.ibeam imsize=8000,8000 cell=1,1 stokes=i robust=0 
+mfclean map=ngc5253.2100.imap beam=ngc5253.2100.ibeam out=ngc5253.2100.icl niters=500 region=quarter minpatch=257 gain=0.1 speed=-1 options=mfs,sdb,double 
+restor map=ngc5253.2100.imap out=ngc5253.2100.rstr model=ngc5253.2100.icl beam=ngc5253.2100.ibeam
+
+### Now the Selfcal and cleaning process beginn. Change the region parameter to the name of your mask. this should be a .rgn file. 
+### If the mfclean diverge, try taking a bigger imsize 
+### The theretical threshold limit is given during the "invert" process. 
+
+
+#rm -r *.rstr *.ibeam *.imap *.icl
+
+# 20min
+invert options=mfs,double,sdb vis=ngc5253.2100.aver map=ngc5253.2100.imap beam=ngc5253.2100.ibeam imsize=8000,8000 cell=1,1 stokes=i robust=0 
+mfclean map=ngc5253.2100.imap beam=ngc5253.2100.ibeam out=ngc5253.2100.icl niters=1000 region=@ds9.rgn minpatch=257 gain=0.1 speed=-1 options=mfs,sdb,double 
+selfcal vis=ngc5253.2100.aver model=ngc5253.2100.icl options=phase,mfs interval=20 refant=3
+
+# 10min
+rm -r  *.icl  *.ibeam *.imap
+invert options=mfs,double,sdb vis=ngc5253.2100.aver map=ngc5253.2100.imap beam=ngc5253.2100.ibeam imsize=8000,8000 cell=1,1 stokes=i robust=0
+mfclean map=ngc5253.2100.imap beam=ngc5253.2100.ibeam out=ngc5253.2100.icl niters=100000000 region=@ds9.rgn minpatch=257 gain=0.1 speed=-1 options=mfs,sdb,double cutoff=50*theoretical threshold limit
+selfcal vis=ngc5253.2100.aver model=ngc5253.2100.icl options=phase,mfs interval=10 refant=3
+
+# 5min
+rm -r  *.icl *.ibeam *.imap
+invert options=mfs,double,sdb vis=ngc5253.2100.aver map=ngc5253.2100.imap beam=ngc5253.2100.ibeam imsize=8000,8000 cell=1,1 stokes=i robust=0
+mfclean map=ngc5253.2100.imap beam=ngc5253.2100.ibeam out=ngc5253.2100.icl niters=100000000 region=@ds9.rgn minpatch=257 gain=0.1 speed=-1 options=mfs,sdb,double cutoff=20*theoretical threshold limit
+selfcal vis=ngc5253.2100.aver model=ngc5253.2100.icl options=phase,mfs interval=5 refant=3
+
+# 3min
+rm -r  *.icl *.ibeam *.imap
+invert options=mfs,double,sdb vis=ngc5253.2100.aver map=ngc5253.2100.imap beam=ngc5253.2100.ibeam imsize=8000,8000 cell=1,1 stokes=i robust=0
+mfclean map=ngc5253.2100.imap beam=ngc5253.2100.ibeam out=ngc5253.2100.icl niters=100000000 region=@ds9.rgn minpatch=257 gain=0.1 speed=-1 options=mfs,sdb,double cutoff=10*theoretical threshold limit
+selfcal vis=ngc5253.2100.aver model=ngc5253.2100.icl options=phase,mfs interval=3 refant=3
+
+# 1min
+rm -r  *.icl *.ibeam *.imap
+invert options=mfs,double,sdb vis=ngc5253.2100.aver map=ngc5253.2100.imap beam=ngc5253.2100.ibeam imsize=8000,8000 cell=1,1 stokes=i robust=0
+mfclean map=ngc5253.2100.imap beam=ngc5253.2100.ibeam out=ngc5253.2100.icl niters=100000000 region=@ds9.rgn minpatch=257 gain=0.1 speed=-1 options=mfs,sdb,double cutoff=5*theoretical threshold limit
+selfcal vis=ngc5253.2100.aver model=ngc5253.2100.icl options=phase,mfs interval=1 refant=3
+
+
+# Imaging for subtraction
+rm -r  *.icl *.ibeam *.imap
+invert options=mfs,double,sdb vis=ngc5253.2100.aver map=ngc5253.2100.imap beam=ngc5253.2100.ibeam imsize=8000,8000 cell=1,1 stokes=i robust=0
+mfclean map=ngc5253.2100.imap beam=ngc5253.2100.ibeam out=ngc5253.2100.icl niters=100000000 region=@ds9.rgn minpatch=257 gain=0.1 speed=-1 options=mfs,sdb,double cutoff=2*theoretical threshold limit
+selfcal vis=ngc5253.2100.aver model=ngc5253.2100.icl options=phase,mfs interval=1 refant=3
+
+rm -r  *.icl *.ibeam *.imap
+invert options=mfs,double,sdb vis=ngc5253.2100.aver map=ngc5253.2100.imap beam=ngc5253.2100.ibeam imsize=8000,8000 cell=1,1 stokes=i robust=0
+mfclean map=ngc5253.2100.imap beam=ngc5253.2100.ibeam out=ngc5253.2100.icl niters=100000000 region=@ds9.rgn minpatch=257 gain=0.1 speed=-1 options=mfs,sdb,double cutoff=theoretical threshold limit
+selfcal vis=ngc5253.2100.aver model=ngc5253.2100.icl options=phase,mfs interval=1 refant=3
+
+rm -r  *.icl *.ibeam *.imap
+invert options=mfs,double,sdb vis=ngc5253.2100.aver map=ngc5253.2100.imap beam=ngc5253.2100.ibeam imsize=8000,8000 cell=1,1 stokes=i robust=0
+mfclean map=ngc5253.2100.imap beam=ngc5253.2100.ibeam out=ngc5253.2100.icl niters=100000000 region=@ds9.rgn minpatch=257 gain=0.1 speed=-1 options=mfs,sdb,double cutoff=0.5*theoretical threshold limit
+
+restor map=ngc5253.2100.imap out=ngc5253.2100.rstr model=ngc5253.2100.icl beam=ngc5253.2100.ibeam
+
+linmos in=ngc5253.2100.rstr out=ngc5253.2100.pbc
+
+
+
+# to get a fits file of it
+fits in=ngc5253.2100.rstr out=ngc3125.rstr.fits op=xyout
+fits in=ngc5253.2100.pbc out=ngc3125.pbc.fits op=xyout
+
+
+
+
+
+
+#### The imaging for 5.5 and 9GHz works the same way as for 2.1GHz. change 2100 to 5500 or 9000, respectively
+
+
