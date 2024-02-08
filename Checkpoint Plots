@@ -1,0 +1,41 @@
+####################################
+####################################
+###           - Plots -          ###
+####################################
+####################################
+
+### Check the quality of the data with the following plots 
+
+
+
+########################
+## - Fux calibrator - ##
+########################
+
+### Check for RFI with freq-amp plot
+uvplt vis=1934-638.2100  stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
+
+### Plot the gains
+uvplt vis=1934-638.2100 device=/xs stokes=i,q,u,v axis=real,imag options=equal,nobase,nofqav
+uvplt vis=1934-638.2100 stokes=xx,yy axis=time,amp yrange=0,10 device=/xs nxy=5,3
+
+
+########################
+## - Phase calibrator - ##
+########################
+
+uvspec vis=1421-490.2100  stokes=xx,yy axis=chan,amp device= /xs nxy=5,3 interval=30
+
+### Check for RFI with the freq-phase plot
+uvplt vis=1421-490.2100 stokes=xx,yy axis=freq,phase device=/xs options=nobase,nofqav yrange=-180,180
+
+
+
+#################
+## - Source - ##
+#################
+
+uvplt vis=ngc5253.2100 stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
+
+
+
