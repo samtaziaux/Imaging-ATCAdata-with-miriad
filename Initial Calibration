@@ -5,11 +5,10 @@
 ### Source + Calibrator ###
 ################################
 
-####isz399
-
-#1213-172
-#0823-500
-#1934-638
+####ngc5253  (source)
+#1421-490    (phase calibrator)
+#1934-638    (flux calibrator)
+#0823-500    (flux calibrator, if the 1934-638 has not been observed)
 
 # Do the calibration for each measurement set
 
@@ -45,6 +44,8 @@ mv c3041.uv ./5500
 
 mv *.C3041 ./Original_MSfiles
 
+
+
 ################################
 ################################
 ###     Central Frequency -  2100     ###
@@ -60,13 +61,13 @@ cd ./2100
 
 
 ### First flag the edges
-uvflag vis=1213-172.2100 edge=40 flagval=flag
-uvflag vis=isz399.2100 edge=40 flagval=flag
-uvflag vis=0823-500.2100 edge=40 flagval=flag
+uvflag vis=1421-490.2100 edge=40 flagval=flag
+uvflag vis=1934-638.2100 edge=40 flagval=flag
+uvflag vis=ngc5253.2100 edge=40 flagval=flag
 
 
 ### Check the visibilities of the flux calibrator
-uvspec vis=0823-500.2100 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+uvspec vis=1934-638.2100 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
 
 
 ##################################
@@ -75,98 +76,81 @@ uvspec vis=0823-500.2100 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 int
 
 ###### Flux Calibration
 
-pgflag vis=0823-500.2100 stokes=i,q,u,v flagpar=8,5,5,3,6,3 "command=<b" device=/xs
-pgflag vis=0823-500.2100 stokes=i,v,u,q flagpar=8,2,2,3,6,3 "command=<b" device=/xs
-pgflag vis=0823-500.2100 stokes=i,v,q,u flagpar=8,2,2,3,6,3 "command=<b" device=/xs
+pgflag vis=1934-638.2100 stokes=i,q,u,v flagpar=8,5,5,3,6,3 "command=<b" device=/xs
+pgflag vis=1934-638.2100 stokes=i,v,u,q flagpar=8,2,2,3,6,3 "command=<b" device=/xs
+pgflag vis=1934-638.2100 stokes=i,v,q,u flagpar=8,2,2,3,6,3 "command=<b" device=/xs
 
 ### Check the visibilities of the flux calibrator
-uvspec vis=0823-500.2100 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+uvspec vis=1934-638.2100 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
 
 
 ### Do a preliminary bandpass
-mfcal vis=0823-500.2100 interval=0.1
+mfcal vis=1934-638.2100 interval=0.1
 
 ### Check the visibilities of the flux calibrator
-uvspec vis=0823-500.2100 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+uvspec vis=1934-638.2100 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
 
 
-#to flag manually through the  bgflag or pgflag mode
-blflag vis=0823-500.2100 stokes=xx,yy device=/xs axis=chan,amp options=nofqav,nobase
-blflag vis=0823-500.2100 stokes=xy,yx device=/xs axis=chan,amp options=nofqav,nobase
-pgflag vis=0823-500.2100 stokes=i,q,u,v device=/xs
+#to flag manually through the  bgflag or pgflag mode (if necessary) 
+blflag vis=1934-638.2100 stokes=xx,yy device=/xs axis=chan,amp options=nofqav,nobase
+blflag vis=1934-638.2100 stokes=xy,yx device=/xs axis=chan,amp options=nofqav,nobase
+pgflag vis=1934-638.2100 stokes=i,q,u,v device=/xs
 
-
-### Do a new bandpass and a new plot 
-mfcal vis=0823-500.2100 interval=0.1
-uvspec vis=0823-500.2100 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
 
 ### Check for RFI with freq-amp plot
-uvplt vis=0823-500.2100  stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
+uvplt vis=1934-638.2100  stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
 
 ### Derive the gains and instrumental leakage
-gpcal vis=0823-500.2100 interval=0.1 nfbin=4 options=xyvary
-
-### Plot the gains
-uvplt vis=0823-500.2100 device=/xs stokes=i,q,u,v axis=real,imag options=equal,nobase,nofqav
-uvplt vis=0823-500.2100 stokes=xx,yy axis=time,amp yrange=0,10 device=/xs nxy=5,3
+gpcal vis=1934-638.2100 interval=0.1 nfbin=4 options=xyvary
 
 
 ###### Phase Calibration
-gpcopy vis=0823-500.2100 out=1213-172.2100
-uvspec vis=1213-172.2100 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+gpcopy vis=1934-638.2100 out=1421-490.2100
 
 ### Flag the phase calibrator and re-check visibilities
-pgflag vis=1213-172.2100 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
-pgflag vis=1213-172.2100 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
-pgflag vis=1213-172.2100 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
-uvspec vis=1213-172.2100 select= stokes=xx,yy interval=60 axis=freq,phase device=/xs yrange=-185,185
+pgflag vis=1421-490.2100 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
+pgflag vis=1421-490.2100 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
+pgflag vis=1421-490.2100 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
 
-uvspec vis=1213-172.2100  stokes=xx,yy,xy,yx axis=chan,amp device= /xs nxy=5,3 interval=30
-
-# flag manually through the  bgflag or pgflag mode
-blflag vis=1213-172.2100 stokes=xx,yy device=/xs axis=chan,phase options=nofqav,nobase
-pgflag vis=1213-172.2100 stokes=i,q,u,v device=/xs
 
 ### Do the phase calibrator calibration and bootstrapping (pol)
-gpcal vis=1213-172.2100 nfbin=4 interval=0.1 options=xyvary,qusolve,nopol refant=1
-gpboot vis=1213-172.2100 cal=0823-500.2100
-
+gpcal vis=1421-490.2100 nfbin=4 interval=0.1 options=xyvary,qusolve,nopol refant=1
+gpboot vis=1421-490.2100 cal=1934-638.2100
 
 ### Check for RFI with the freq-phase plot
-uvplt vis=1213-172.2100 stokes=xx,yy axis=freq,phase device=/xs options=nobase,nofqav yrange=-180,180
+uvplt vis=1421-490.2100 stokes=xx,yy axis=freq,phase device=/xs options=nobase,nofqav yrange=-180,180
 
-
+# flag manually through the  bgflag or pgflag mode (if necessary)
+blflag vis=1421-490.2100 stokes=xx,yy device=/xs axis=chan,phase options=nofqav,nobase
+pgflag vis=1421-490.2100 stokes=i,q,u,v device=/xs
 
 ###############################################
 ### Correct flux scale (NOT NEEDED IF 1934) ###
 ###############################################
 
-mfboot vis=0823-500.2100,1213-172.2100 select='source(1934-638)'
+mfboot vis=0823-500.2100,1421-490.2100 select='source(1934-638)'
 
 ##################################
 #### - Imaging Preparation - #####
 ##################################
 
-gpcopy vis=1213-172.2100 out=isz399.2100
-gpaver vis=isz399.2100 interval=2 
-pgflag vis=isz399.2100 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
-pgflag vis=isz399.2100 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
-pgflag vis=isz399.2100 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
+gpcopy vis=1421-490.2100 out=ngc5253.2100
+gpaver vis=ngc5253.2100 interval=2 
+pgflag vis=ngc5253.2100 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
+pgflag vis=ngc5253.2100 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
+pgflag vis=ngc5253.2100 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
 
-
-uvplt vis=isz399.2100 stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
-
-### Create a copy to continue working with, to not touch the calibrated data
-uvaver vis=isz399.2100 out=isz399.2100.aver
+uvplt vis=ngc5253.2100 stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
 
 
 # only if you need to flag data manually
-blflag vis=isz399.2100 stokes=xx,yy device=/xs axis=chan,amp options=nofqav,nobase yrange=0.5
-pgflag vis=isz399.2100.aver stokes=i,q,u,v device=/xs
+blflag vis=ngc5253.2100 stokes=xx,yy device=/xs axis=chan,amp options=nofqav,nobase yrange=0.5
+pgflag vis=ngc5253.2100.aver stokes=i,q,u,v device=/xs
 
+### Create a copy to continue working with, to not touch the calibrated data
+uvaver vis=ngc5253.2100 out=ngc5253.2100.aver
 
-
-
+————————————————————————————————————————————————————————————————————————
 
 
 
@@ -175,17 +159,16 @@ pgflag vis=isz399.2100.aver stokes=i,q,u,v device=/xs
 ###     Central Frequency -  5500     ###
 ################################
 ################################
-cd ..
-cd 5500
+
 
 ### First flag the edges
-uvflag vis=1213-172.5500 edge=40 flagval=flag
-uvflag vis=0823-500.5500 edge=40 flagval=flag
-uvflag vis=isz399.5500 edge=40 flagval=flag
+uvflag vis=1421-490.5500 edge=40 flagval=flag
+uvflag vis=1934-638.5500 edge=40 flagval=flag
+uvflag vis=ngc5253.5500 edge=40 flagval=flag
 
 
 ### Check the visibilities of the flux calibrator
-uvspec vis=0823-500.5500 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+uvspec vis=1934-638.5500 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
 
 
 ##################################
@@ -194,74 +177,83 @@ uvspec vis=0823-500.5500 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 int
 
 ###### Flux Calibration
 
-pgflag vis=0823-500.5500 stokes=i,q,u,v flagpar=8,5,5,3,6,3 "command=<b" device=/xs
-pgflag vis=0823-500.5500 stokes=i,v,u,q flagpar=8,2,2,3,6,3 "command=<b" device=/xs
-pgflag vis=0823-500.5500 stokes=i,v,q,u flagpar=8,2,2,3,6,3 "command=<b" device=/xs
+pgflag vis=1934-638.5500 stokes=i,q,u,v flagpar=8,5,5,3,6,3 "command=<b" device=/xs
+pgflag vis=1934-638.5500 stokes=i,v,u,q flagpar=8,2,2,3,6,3 "command=<b" device=/xs
+pgflag vis=1934-638.5500 stokes=i,v,q,u flagpar=8,2,2,3,6,3 "command=<b" device=/xs
 
 ### Check the visibilities of the flux calibrator
-uvspec vis=0823-500.5500 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+uvspec vis=1934-638.5500 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
 
 
 ### Do a preliminary bandpass
-mfcal vis=0823-500.5500 interval=0.1
+mfcal vis=1934-638.5500 interval=0.1
 
 ### Check the visibilities of the flux calibrator
-uvspec vis=0823-500.5500 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+uvspec vis=1934-638.5500 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+
+
+#to flag manually through the  bgflag or pgflag mode (if necessary) 
+blflag vis=1934-638.5500 stokes=xx,yy device=/xs axis=chan,amp options=nofqav,nobase
+blflag vis=1934-638.5500 stokes=xy,yx device=/xs axis=chan,amp options=nofqav,nobase
+pgflag vis=1934-638.5500 stokes=i,q,u,v device=/xs
+
 
 ### Check for RFI with freq-amp plot
-uvplt vis=0823-500.5500  stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
+uvplt vis=1934-638.5500  stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
 
 ### Derive the gains and instrumental leakage
-gpcal vis=0823-500.5500 interval=0.1 nfbin=4 options=xyvary
+gpcal vis=1934-638.5500 interval=0.1 nfbin=4 options=xyvary
 
 ###### Phase Calibration
-gpcopy vis=0823-500.5500 out=1213-172.5500
+gpcopy vis=1934-638.5500 out=1421-490.5500
 
 ### Flag the phase calibrator and re-check visibilities
-pgflag vis=1213-172.5500 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
-pgflag vis=1213-172.5500 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
-pgflag vis=1213-172.5500 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
+pgflag vis=1421-490.5500 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
+pgflag vis=1421-490.5500 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
+pgflag vis=1421-490.5500 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
+
 
 ### Do the phase calibrator calibration and bootstrapping (pol)
-gpcal vis=1213-172.5500 nfbin=4 interval=0.1 options=xyvary,qusolve,nopol refant=1
-gpboot vis=1213-172.5500 cal=0823-500.5500
+gpcal vis=1421-490.5500 nfbin=4 interval=0.1 options=xyvary,qusolve,nopol refant=1
+gpboot vis=1421-490.5500 cal=1934-638.5500
 
 ### Check for RFI with the freq-phase plot
-uvplt vis=1213-172.5500 stokes=xx,yy axis=freq,phase device=/xs options=nobase,nofqav yrange=-180,180
+uvplt vis=1421-490.5500 stokes=xx,yy axis=freq,phase device=/xs options=nobase,nofqav yrange=-180,180
+
+# flag manually through the  bgflag or pgflag mode (if necessary) 
+blflag vis=1421-490.5500 stokes=xx,yy device=/xs axis=chan,phase options=nofqav,nobase
+pgflag vis=1421-490.5500 stokes=i,q,u,v device=/xs
 
 
 ###############################################
 ### Correct flux scale (NOT NEEDED IF 1934) ###
 ###############################################
 
-mfboot vis=0823-500.5500,1213-172.5500 select='source(1934-638)'
+mfboot vis=0823-500.5500,1421-490.5500 select='source(1934-638)'
 
 ##################################
 #### - Imaging Preparation - #####
 ##################################
 
-gpcopy vis=1213-172.5500 out=isz399.5500
-gpaver vis=isz399.5500 interval=2 
-pgflag vis=isz399.5500 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
-pgflag vis=isz399.5500 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
-pgflag vis=isz399.5500 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
+gpcopy vis=1421-490.5500 out=ngc5253.5500
+gpaver vis=ngc5253.5500 interval=2 
+pgflag vis=ngc5253.5500 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
+pgflag vis=ngc5253.5500 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
+pgflag vis=ngc5253.5500 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
 
-
-
-uvplt vis=isz399.5500 stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
-
-### Create a copy to continue working with, to not touch the calibrated data
-uvaver vis=isz399.5500 out=isz399.5500.aver
+uvplt vis=ngc5253.5500 stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
 
 
 # only if you need to flag data manually
-blflag vis=isz399.5500 stokes=xx,yy device=/xs axis=chan,amp options=nofqav,nobase yrange=0.5
-pgflag vis=isz399.5500.aver stokes=i,q,u,v device=/xs
+blflag vis=ngc5253.5500.aver stokes=xx,yy device=/xs axis=chan,amp options=nofqav,nobase yrange=0.5
+pgflag vis=ngc5253.5500.aver stokes=i,q,u,v device=/xs
 
 
+### Create a copy to continue working with, to not touch the calibrated data
+uvaver vis=ngc5253.5500 out=ngc5253.5500.aver
 
 
-
+————————————————————————————————————————————————————————————————————————
 
 
 
@@ -270,17 +262,16 @@ pgflag vis=isz399.5500.aver stokes=i,q,u,v device=/xs
 ###     Central Frequency -  9000     ###
 ################################
 ################################
-cd ..
-cd 9000
+
 
 ### First flag the edges
-uvflag vis=1213-172.9000 edge=40 flagval=flag
-uvflag vis=0823-500.9000 edge=40 flagval=flag
-uvflag vis=isz399.9000 edge=40 flagval=flag
+uvflag vis=1421-490.9000 edge=40 flagval=flag
+uvflag vis=1934-638.9000 edge=40 flagval=flag
+uvflag vis=ngc5253.9000 edge=40 flagval=flag
 
 
 ### Check the visibilities of the flux calibrator
-uvspec vis=0823-500.9000 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+uvspec vis=1934-638.9000 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
 
 
 ##################################
@@ -289,71 +280,78 @@ uvspec vis=0823-500.9000 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 int
 
 ###### Flux Calibration
 
-pgflag vis=0823-500.9000 stokes=i,q,u,v flagpar=8,5,5,3,6,3 "command=<b" device=/xs
-pgflag vis=0823-500.9000 stokes=i,v,u,q flagpar=8,2,2,3,6,3 "command=<b" device=/xs
-pgflag vis=0823-500.9000 stokes=i,v,q,u flagpar=8,2,2,3,6,3 "command=<b" device=/xs
+pgflag vis=1934-638.9000 stokes=i,q,u,v flagpar=8,5,5,3,6,3 "command=<b" device=/xs
+pgflag vis=1934-638.9000 stokes=i,v,u,q flagpar=8,2,2,3,6,3 "command=<b" device=/xs
+pgflag vis=1934-638.9000 stokes=i,v,q,u flagpar=8,2,2,3,6,3 "command=<b" device=/xs
 
 ### Check the visibilities of the flux calibrator
-uvspec vis=0823-500.9000 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+uvspec vis=1934-638.9000 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
 
 
 ### Do a preliminary bandpass
-mfcal vis=0823-500.9000 interval=0.1
+mfcal vis=1934-638.9000 interval=0.1
 
 ### Check the visibilities of the flux calibrator
-uvspec vis=0823-500.9000 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+uvspec vis=1934-638.9000 stokes=xx,yy,xy,yx axis=chan,amp device=/xs nxy=5,3 interval=30
+
+
+#to flag manually through the  bgflag or pgflag mode (if necessary) 
+blflag vis=1934-638.9000 stokes=xx,yy device=/xs axis=chan,amp options=nofqav,nobase
+blflag vis=1934-638.9000 stokes=xy,yx device=/xs axis=chan,amp options=nofqav,nobase
+pgflag vis=1934-638.9000 stokes=i,q,u,v device=/xs
 
 ### Check for RFI with freq-amp plot
-uvplt vis=0823-500.9000  stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
+uvplt vis=1934-638.9000  stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
 
 ### Derive the gains and instrumental leakage
-gpcal vis=0823-500.9000 interval=0.1 nfbin=4 options=xyvary
+gpcal vis=1934-638.9000 interval=0.1 nfbin=4 options=xyvary
+
 
 ###### Phase Calibration
-gpcopy vis=0823-500.9000 out=1213-172.9000
+gpcopy vis=1934-638.9000 out=1421-490.9000
 
 ### Flag the phase calibrator and re-check visibilities
-pgflag vis=1213-172.9000 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
-pgflag vis=1213-172.9000 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
-pgflag vis=1213-172.9000 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
+pgflag vis=1421-490.9000 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
+pgflag vis=1421-490.9000 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
+pgflag vis=1421-490.9000 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
 
 ### Do the phase calibrator calibration and bootstrapping (pol)
-gpcal vis=1213-172.9000 nfbin=4 interval=0.1 options=xyvary,qusolve,nopol refant=1
-gpboot vis=1213-172.9000 cal=0823-500.9000
+gpcal vis=1421-490.9000 nfbin=4 interval=0.1 options=xyvary,qusolve,nopol refant=1
+gpboot vis=1421-490.9000 cal=1934-638.9000
 
 
 ### Check for RFI with the freq-phase plot
-uvplt vis=1213-172.9000 stokes=xx,yy axis=freq,phase device=/xs options=nobase,nofqav yrange=-180,180
+uvplt vis=1421-490.9000 stokes=xx,yy axis=freq,phase device=/xs options=nobase,nofqav yrange=-180,180
 
+# flag manually through the  bgflag or pgflag mode (if necessary) 
+blflag vis=1421-490.9000 stokes=xx,yy device=/xs axis=chan,phase options=nofqav,nobase
+pgflag vis=1421-490.9000 stokes=i,q,u,v device=/xs
 
 
 ###############################################
 ### Correct flux scale (NOT NEEDED IF 1934) ###
 ###############################################
 
-mfboot vis=0823-500.9000,1213-172.9000 select='source(1934-638)'
+mfboot vis=0823-500.9000,1421-490.9000 select='source(1934-638)'
 
 ##################################
 #### - Imaging Preparation - #####
 ##################################
 
-gpcopy vis=1213-172.9000 out=isz399.9000
-gpaver vis=isz399.9000 interval=2 
-pgflag vis=isz399.9000 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
-pgflag vis=isz399.9000 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
-pgflag vis=isz399.9000 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
+gpcopy vis=1421-490.9000 out=ngc5253.9000
+gpaver vis=ngc5253.9000 interval=2 
+pgflag vis=ngc5253.9000 device=/xs stokes=i,q,u,v flagpar=8,5,5,3,6,3 command="=<b"
+pgflag vis=ngc5253.9000 device=/xs stokes=i,v,u,q flagpar=8,2,2,3,6,3 command="=<b"
+pgflag vis=ngc5253.9000 device=/xs stokes=i,v,q,u flagpar=8,2,2,3,6,3 command="=<b"
+
+uvplt vis=ngc5253.9000 stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
 
 
+# only if you need to flag data manually (if necessary) 
+blflag vis=ngc5253.9000.aver stokes=xx,yy device=/xs axis=chan,amp options=nofqav,nobase yrange=0.5
+pgflag vis=ngc5253.9000.aver stokes=i,q,u,v device=/xs
 
-uvplt vis=isz399.9000 stokes=xx,yy axis=freq,amp device=/xs options=nobase,nofqav
 
 ### Create a copy to continue working with, to not touch the calibrated data
-uvaver vis=isz399.9000 out=isz399.9000.aver
-
-
-# only if you need to flag data manually
-blflag vis=isz399.9000 stokes=xx,yy device=/xs axis=chan,amp options=nofqav,nobase yrange=0.5
-pgflag vis=isz399.9000.aver stokes=i,q,u,v device=/xs
-
-
+uvaver vis=ngc5253.9000 out=ngc5253.9000.aver
 
