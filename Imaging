@@ -76,8 +76,8 @@ linmos in=ngc5253.2100.rstr out=ngc5253.2100.pbc
 
 
 # to get a fits file of it
-fits in=ngc5253.2100.rstr out=ngc3125.rstr.fits op=xyout
-fits in=ngc5253.2100.pbc out=ngc3125.pbc.fits op=xyout
+fits in=ngc5253.2100.rstr out=ngc5253.rstr.fits op=xyout
+fits in=ngc5253.2100.pbc out=ngc5253.pbc.fits op=xyout
 
 
 
