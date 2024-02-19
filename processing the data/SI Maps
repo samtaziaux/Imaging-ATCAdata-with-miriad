@@ -1,1 +1,497 @@
 
+
+##################################
+##################################
+##### - Convol with miriad - #####
+##################################
+##################################
+
+# Using miriad convol the primary beam corrected Stokes I images to the same beam. Analog for 9000MHz. 
+# The Bmaj and Bmin can be taken from the header
+
+convol map=ngc5253.5500.pbc fwhm=Bmin*3600,Bmin*3600 options=final pa=BPA out=ngc5253.5500.2100convol.pbc
+
+fits in=ngc5253.5500.2100convol.pbc out=ngc5253.5500.2100convol.pbc.fits op=xyout
+
+
+# analog for 9000MHz
+
+
+###############################
+###############################
+###### - SI MAPS Plots - ######
+###############################
+###############################
+
+
+
+
+
+from astropy.io import fits
+import numpy as np
+import matplotlib.pyplot as plt
+from gammapy.maps import Map
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+import aplpy
+import os
+
+
+
+############################# - RMS Calculation of the image - ###############################
+
+def calc_RMS(image):
+    num_iterations = 200
+    results = np.empty(num_iterations)
+    with fits.open(image) as hdul:
+        data = hdul[0].data
+        data= np.squeeze(data)
+        
+    for i in range(num_iterations):
+        std_total = np.std(data)
+        x, y = np.random.randint(0, data.shape[0]), np.random.randint(0, data.shape[1])
+        random_field = data[x:x+(int(0.13*data.shape[0])), y:y+(int(0.13*data.shape[1]))]
+        std_random = np.std(random_field)
+        if std_random < std_total:
+            picked_field = random_field
+            std_picked_field = np.std(picked_field)
+            RMS_picked_field=5*std_picked_field
+            results[i] = RMS_picked_field
+    results.sort()
+    RMS = np.median(results)
+    RMS = abs(RMS)
+    if RMS== 0 or RMS == np.nan:
+        RMS == 0.000000000000000000000000000001
+    cont= [RMS,2*RMS,4*RMS,8*RMS,16*RMS,32*RMS,64*RMS,128*RMS,256*RMS,512*RMS,1024*RMS, 2048*RMS,4096*RMS]
+    cont1=[RMS]
+    return RMS, cont,cont1
+
+
+
+
+def calc_RMS_cont(image):
+    num_iterations = 200
+    results = np.empty(num_iterations)
+    with fits.open(image) as hdul:
+        data = hdul[0].data
+        data= np.squeeze(data)
+        
+    for i in range(num_iterations):
+        std_total = np.std(data)
+        x, y = np.random.randint(0, data.shape[0]), np.random.randint(0, data.shape[1])
+        random_field = data[x:x+(int(0.13*data.shape[0])), y:y+(int(0.13*data.shape[1]))]
+        std_random = np.std(random_field)
+        if std_random < std_total:
+            picked_field = random_field
+            std_picked_field = np.std(picked_field)
+            RMS_picked_field=5*std_picked_field
+            results[i] = RMS_picked_field
+    results.sort()
+    RMS = np.median(results)
+    RMS = abs(RMS)
+    if RMS== 0 or RMS == np.nan:
+        RMS == 0.000000000000000000000000000001
+    cont= [RMS,2*RMS,4*RMS,8*RMS,16*RMS,32*RMS,64*RMS,128*RMS,256*RMS,512*RMS,1024*RMS, 2048*RMS,4096*RMS]
+    cont1=[RMS]
+    return RMS, cont,cont1
+
+
+
+
+############################# - Determination of BEAM (simple) - ###############################
+
+def get_beam(image):
+    header = fits.getheader(image)
+    BMAJ=header['BMAJ']
+    BMIN=header['BMIN']
+    BPA=header['BPA']
+    return BMAJ, BMIN , BPA
+
+def get_header(image):
+    with fits.open(image) as hdul:
+        matrix = hdul[0].data
+        matrix= np.squeeze(matrix)
+        header=hdul[0].header
+    return header
+
+def threesigma_flux(image_path,beam):
+    RMS = []
+    Flux = []
+    max_iterations = 20
+    iteration_count = 0
+        
+    with fits.open(image_path) as hdul:
+        matrix = hdul[0].data
+        matrix = np.squeeze(matrix)    
+
+    while np.isnan(np.mean(RMS)):
+        rms_i, cont ,cont1= calc_RMS(image_path)
+        if np.isnan(rms_i):
+            continue
+        FP_i = matrix
+        FP_i[np.where(matrix < rms_i)] = np.nan
+        flux = FP_i / beam
+      #  RMS = np.append(RMS, rms_i)
+       # Flux = np.append(Flux, flux_i)
+        iteration_count += 1
+
+        if iteration_count >= max_iterations:
+            print("Reached the maximum number of iterations, breaking loop")
+            break
+
+    return flux
+
+
+
+def plot_ms(title, fits_file):
+    fig = plt.figure(figsize=(5, 5))
+    f = aplpy.FITSFigure(fits_file, figure=fig)
+    f.show_colorscale(cmap='RdBu')
+   # f.add_colorbar()
+    f.set_xaxis_coord_type('longitude')
+    f.set_yaxis_coord_type('latitude')
+    f.ticks.show()
+    f.ticks.set_color('black')
+    f.ticks.set_tick_direction('in')
+    f.set_title(title)
+    plt.show()
+
+
+
+
+
+def spectral_index_2100freq(galaxy_name, galaxy_name_small, RA, Dec, radius, RA_hms, Dec_dms, freq):
+
+    if not os.path.exists(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/'):
+        os.makedirs(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/')
+    if not os.path.exists(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/SIMaps/'):
+        os.makedirs(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/SIMaps/')
+    
+    print(freq)
+    image_path_low=f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/SI/{galaxy_name_small}.2100.pbc.fits'
+    image_path_high=f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/SI/{galaxy_name_small}.{freq}.2100convol.pbc.fits'
+    if not os.path.exists(image_path_high):
+        print(f"{image_path_high} does not exist. Skipping.")
+        return
+    data_l = Map.read(image_path_low)
+    data_h = Map.read(image_path_high)
+    
+    cutout_l = data_l.cutout(position=SkyCoord(RA * u.deg, Dec * u.deg, frame="fk5"), width = radius * u.deg)
+    cutout_h = data_h.cutout(position=SkyCoord(RA * u.deg, Dec * u.deg, frame="fk5"), width = radius * u.deg)
+    cutout_l.write("cutout_l.fits",overwrite=True)
+    cutout_h.write("cutout_h.fits",overwrite=True)
+    atca_l='cutout_l.fits'
+    atca_h='cutout_h.fits'
+
+
+    # Lade die Header
+    header1=get_header(atca_l)
+    header2=get_header(atca_h)
+
+    print('Header_ATCA \n', header1)
+    print('\n')
+    print('Header_Meerkat \n', header2)
+    print('\n')
+    print('\n')
+
+
+    BMAJ1, BMIN1, BPA1 = get_beam(image_path_low)
+    BMAJ2, BMIN2, BPA2 = get_beam(image_path_high) 
+
+    beam1 = np.absolute(np.pi * ((BMAJ1 * BMIN1 / (header1['CDELT1'] * header1['CDELT2'])) / (4. * np.log(2.))))
+    beam2 = np.absolute(np.pi * ((BMAJ2 * BMIN2 / (header2['CDELT1'] * header2['CDELT2'])) / (4. * np.log(2.))))
+    
+    header2['BMAJ'] = BMAJ2
+    header2['BMIN'] = BMIN2
+    header2['BPA']=BPA2+90
+    
+    header1['BMAJ'] = BMAJ1
+    header1['BMIN'] = BMIN1
+    header1['BPA'] = BPA1+90
+
+
+    data1=fits.getdata(atca_l)
+    data2=fits.getdata(atca_h)
+    
+    data1=np.squeeze(data1)
+    data2=np.squeeze(data2)
+    
+    
+    plot_ms('ATCA 2100 original', atca_l)
+    plot_ms(f'ATCA {freq} original', atca_h)
+    
+
+
+    ##################
+    # Aperatur + RMS #
+    ##################
+    
+    flux1 = threesigma_flux(atca_l, beam1)
+    flux2 = threesigma_flux(atca_h, beam2)
+    
+    fits.writeto('atca_l_flux.fits', flux1, header1, overwrite=True)
+    fits.writeto('atca_h_flux.fits', flux2, header2, overwrite=True)
+    
+    plot_ms('ATCA 2100 apertur+rms', 'atca_l_flux.fits',)
+    plot_ms(f'ATCA {freq} apertur+rms', 'atca_h_flux.fits',)
+    
+    
+    fits_1 = fits.open('atca_l_flux.fits')
+    fits_2 = fits.open('atca_h_flux.fits')
+    
+    data_1 = fits_1[0].data
+    data_2 = fits_2[0].data
+    
+    header_1 = fits_1[0].header
+    header_2 = fits_2[0].header
+
+    
+    from reproject import reproject_interp
+    
+    data_2_reprojected, _ = reproject_interp((data_2, header_2), header_1)
+    data_2 = data_2_reprojected
+    
+    flux1=data_1
+    flux2=data_2
+
+
+    ##################
+    # Spectral Index #
+    ##################
+    
+    
+    spectral_index =  np.log(flux1 / flux2) / np.log(2100 / freq)
+
+    fits.writeto('spectralindex_{galaxy_name_small}_2100{freq}.fits', data=spectral_index, header=header1, overwrite=True)
+
+
+    import specindex as spx
+    from colourspace import maps
+    import galfits as gal
+    
+    
+    min_value =  np.nanmin(spectral_index)
+    max_value =  np.nanmax(spectral_index)
+    
+    # Create spectral index cmap.
+    # This uses default steep/flat values used for "steepp" (=-0.8) and "flatp" (=-0.1) in specindex.py.
+    cmap = 'rainbow' #"CC-specindex-default"
+    #spx.create_cmap_specindex(min_value,max_value,name=cmap)
+
+
+    title='{galaxy_name}'
+    fits_file='spectralindex_{galaxy_name_small}_2100{freq}.fits'
+
+    RA = RA_hms    # hh.mm.ss
+    DEC = Dec_dms # deg.mm.ss; negatives Dec format -dg.,-am.,-as
+
+    TrimSwitch='rectangle'
+    TrimSwitch='no_trim'
+    ImgSize=[]
+    
+    #  For square images simply set ImgWidth=ImgHeight
+    shift = [0.0, 0.2/60.] # degrees
+    
+    
+    ticks = [min_value,-1.5,-1,-0.6,0,max_value]
+    nsteps=10
+    cbar_name = "Spectral Index"
+    
+    fig, ax = gal.plot_galaxy(fits_file,RA,DEC,ImgSize,shift,cmap,min_value,max_value,ticks=ticks,nsteps=nsteps,cb_name=cbar_name,TrimSwitch=TrimSwitch,figsize=(8,9))
+    
+    
+    
+    RMS, cont, cont1 = calc_RMS_cont(atca_l)
+    ax.contour(data1, levels=cont, colors='black', linewidths=1)
+    
+    
+    fig.savefig(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/SIMaps/{galaxy_name}_SI_2100{freq}.png', bbox_inches = "tight", dpi=1200)
+
+
+
+def spectral_index_55009000(galaxy_name, galaxy_name_small, RA, Dec, radius, RA_hms, Dec_dms):
+
+    image_path_low=f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/SI/{galaxy_name_small}.5500.2100convol.pbc.fits'
+    image_path_high=f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/SI/{galaxy_name_small}.9000.2100convol.pbc.fits'
+    if not os.path.exists(image_path_low):
+        print(f"{image_path_low} does not exist. Skipping.")
+        return
+    if not os.path.exists(image_path_high):
+        print(f"{image_path_high} does not exist. Skipping.")
+        return
+    data_l = Map.read(image_path_low)
+    data_h = Map.read(image_path_high)
+    cutout_l = data_l.cutout(position=SkyCoord(RA * u.deg, Dec * u.deg, frame="fk5"), width=radius * u.deg)
+    cutout_h = data_h.cutout(position=SkyCoord(RA * u.deg, Dec * u.deg, frame="fk5"), width=radius * u.deg)
+    cutout_l.write("cutout_l.fits",overwrite=True)
+    cutout_h.write("cutout_h.fits",overwrite=True)
+    atca_l='cutout_l.fits'
+    atca_h='cutout_h.fits'
+
+
+    header1=get_header(atca_l)
+    header2=get_header(atca_h)
+
+    print('Header_ATCA \n', header1)
+    print('\n')
+    print('Header_Meerkat \n', header2)
+    print('\n')
+    print('\n')
+
+
+    BMAJ1, BMIN1, BPA1 = get_beam(image_path_low)
+    BMAJ2, BMIN2, BPA2 = get_beam(image_path_high) 
+
+    beam1 = np.absolute(np.pi * ((BMAJ1 * BMIN1 / (header1['CDELT1'] * header1['CDELT2'])) / (4. * np.log(2.))))
+    beam2 = np.absolute(np.pi * ((BMAJ2 * BMIN2 / (header2['CDELT1'] * header2['CDELT2'])) / (4. * np.log(2.))))
+    
+    header2['BMAJ'] = BMAJ2
+    header2['BMIN'] = BMIN2
+    header2['BPA']=BPA2+90
+    
+    header1['BMAJ'] = BMAJ1
+    header1['BMIN'] = BMIN1
+    header1['BPA'] = BPA1+90
+
+
+    
+    data1=fits.getdata(atca_l)
+    data2=fits.getdata(atca_h)
+    
+    data1=np.squeeze(data1)
+    data2=np.squeeze(data2)
+    
+    plot_ms('ATCA 5500 original', atca_l)
+    plot_ms('ATCA 9000 original', atca_h)
+
+
+
+    ##################
+    # Aperatur + RMS #
+    ##################
+    
+    flux1 = threesigma_flux(atca_l, beam1)
+    flux2 = threesigma_flux(atca_h, beam2)
+    
+    
+    fits.writeto('atca_l_flux.fits', flux1, header1, overwrite=True)
+    
+    fits.writeto('atca_h_flux.fits', flux2, header2, overwrite=True)
+    
+    plot_ms('ATCA 5500 apertur+rms', 'atca_l_flux.fits',)
+    plot_ms('ATCA 9000 apertur+rms', 'atca_h_flux.fits',)
+    
+    
+    fits_1 = fits.open('atca_l_flux.fits')
+    fits_2 = fits.open('atca_h_flux.fits')
+    
+    data_1 = fits_1[0].data
+    data_2 = fits_2[0].data
+    
+    header_1 = fits_1[0].header
+    header_2 = fits_2[0].header
+
+
+    from reproject import reproject_interp
+    
+    data_2_reprojected, _ = reproject_interp((data_2, header_2), header_1)
+    data_2 = data_2_reprojected
+    
+    flux1=data_1
+    flux2=data_2
+    
+
+
+    ##################
+    # Spectral Index #
+    ##################
+    
+    
+    spectral_index =  np.log(flux1 / flux2) / np.log(5500 / 9000)
+
+    fits.writeto('spectralindex_{galaxy_name_small}_55009000.fits', data=spectral_index, header=header1, overwrite=True)
+
+
+    
+    import specindex as spx
+    from colourspace import maps
+    import galfits as gal
+    
+    
+
+    
+    min_value =  np.nanmin(spectral_index)
+    max_value =  np.nanmax(spectral_index)
+    
+    # Create spectral index cmap.
+    # This uses default steep/flat values used for "steepp" (=-0.8) and "flatp" (=-0.1) in specindex.py.
+    cmap = 'rainbow' #"CC-specindex-default"
+    #spx.create_cmap_specindex(min_value,max_value,name=cmap)
+
+
+    title='{galaxy_name}'
+    fits_file='spectralindex_{galaxy_name_small}_55009000.fits'
+
+    RA = RA_hms    # hh.mm.ss
+    DEC = Dec_dms # deg.mm.ss; negatives Dec format -dg.,-am.,-as
+
+    
+    TrimSwitch='rectangle'
+    TrimSwitch='no_trim'
+    ImgSize=[]
+    
+    #  For square images simply set ImgWidth=ImgHeight
+    shift = [0.0, 0.2/60.] # degrees
+    
+    
+    ticks = [min_value,-1.5,-1,-0.6,0,max_value]
+    nsteps=10
+    cbar_name = "Spectral Index"
+    
+    fig, ax = gal.plot_galaxy(fits_file,RA,DEC,ImgSize,shift,cmap,min_value,max_value,ticks=ticks,nsteps=nsteps,cb_name=cbar_name,TrimSwitch=TrimSwitch,figsize=(8,9))
+    
+    
+    
+    RMS, cont, cont1 = calc_RMS_cont(atca_l)
+    ax.contour(data1, levels=cont, colors='black', linewidths=1)
+    
+    
+    
+    
+    fig.savefig(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/SIMaps/{galaxy_name}_SI_55009000.png', bbox_inches = "tight", dpi=1200)
+
+
+
+
+
+
+### CHILLING Galaxies 
+
+
+# to plot all galaxies in the same run
+
+galaxies = [
+   # ('ESO154-G023', 'eso154-g023', 44.209917, -54.571417,  0.01),
+   # ('ESO245-G005', 'eso245-g005', 26.265571, -43.598036, 0.02),
+   # ('ESO383-G087', 'eso383-g087', 207.322917, -36.063444, 0.02),
+    ('ESO572-G025', 'eso572-g025', 179.366800, -19.624057, 0.04, [11, 57, 28.0319], [-19, 37, 26.604]),
+    ('Fairall301', 'fairall301', 61.533000, -52.668417, 0.04, [4, 6, 7.9200], [-52, 40, 6.300]),
+   # ('IC1959', 'ic1959', 53.302458, -50.414250, 0.02),
+    ('IC4662', 'ic4662', 266.786944, -64.64176, 0.05, [17, 47, 8.8664], [-64, 38, 30.335]),
+   # ('IC5152', 'ic5152', 330.672958, -51.296444, 0.02),
+    ('ISZ399', 'isz399', 184.997958, -17.39194, 0.04, [12, 19, 59.510], [-17, 23, 31.000]),
+    ('NGC244', 'ngc244', 11.443458, -15.596889 , 0.02, [0, 45, 46.4300], [-15, 35, 48.800]),
+    ('NGC625', 'ngc625', 23.769292, -41.43619, 0.06, [1, 35, 4.6300], [-41, 26, 10.300]),
+   # ('NGC1311', 'ngc1311', 50.029000, -52.185528 , 0.02),
+    ('NGC5253', 'ngc5253', 204.983180, -31.640108 , 0.05, [13, 39, 55.9631], [-31, 38, 24.388]),
+   # ('NGC5264', 'ngc5264', 205.402833, -29.913083	 , 0.02),
+    ('NGC5408', 'ngc5408', 210.837125, -41.377694 , 0.04, [14, 3, 20.9100], [-41, 22, 39.700])
+]
+
+for galaxy in galaxies:
+    frequencies = [5500, 9000]
+    for freq in frequencies:
+        spectral_index_2100freq(*galaxy,freq)
+    spectral_index_55009000(*galaxy)
+
+
