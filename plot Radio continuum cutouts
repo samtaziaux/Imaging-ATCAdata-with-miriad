@@ -1,0 +1,247 @@
+import numpy as np
+import matplotlib
+matplotlib.use('pdf')
+import matplotlib as mpl
+mpl.rcParams.update(mpl.rcParamsDefault)
+import matplotlib.pyplot as plt
+from astropy.io import fits
+matplotlib.axes.Axes.hist
+matplotlib.pyplot.hist
+import aplpy
+import copy
+from gammapy.maps import Map
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+import os 
+
+
+
+def calc_sigmas(data):
+    meandis = np.nanmean(data)
+    if np.isnan(meandis):
+        mindis = 0.0
+        maxdis = 1.0
+    else:
+        oldstd = 0.000011
+        std = np.nanstd(data)
+        while not 0.95 * oldstd < std < 1.05 * oldstd:
+            newdata = copy.deepcopy(data)
+            newdata[np.where(newdata > meandis + 7 * std)] = float('NaN')
+            newdata[np.where(newdata < meandis - 7 * std)] = float('NaN')
+            oldstd = std
+            std = np.nanstd(newdata)
+            meandis = np.nanmean(newdata)
+        mindis = meandis - 1.5 * std #3
+        maxdis = meandis + 5 * std #5
+    return mindis, maxdis
+
+############################# - RMS Calculation of the image - ###############################
+
+def calc_RMS(image):
+    num_iterations = 350
+    results = np.empty(num_iterations)
+    with fits.open(image) as hdul:
+        data = hdul[0].data
+        data= np.squeeze(data)
+        
+    for i in range(num_iterations):
+        std_total = np.std(data)
+        x, y = np.random.randint(0, data.shape[0]), np.random.randint(0, data.shape[1])
+        random_field = data[x:x+(int(0.1*data.shape[0])), y:y+(int(0.1*data.shape[1]))]
+        std_random = np.std(random_field)
+        if std_random < std_total:
+            picked_field = random_field
+            std_picked_field = np.std(picked_field)
+            RMS_picked_field=3*std_picked_field
+            results[i] = RMS_picked_field
+    results.sort()
+    RMS = np.median(results)
+    RMS = abs(RMS)
+    if RMS== 0 or RMS == np.nan:
+        RMS == 0.000000000000000000000000000001
+    cont= [RMS,2*RMS,4*RMS,8*RMS,16*RMS,32*RMS,64*RMS,128*RMS,256*RMS,512*RMS,1024*RMS, 2048*RMS,4096*RMS]
+    cont1 =[RMS]
+    cont2= [2*RMS]
+    cont3= [4*RMS,8*RMS,16*RMS,32*RMS,64*RMS,128*RMS,256*RMS,512*RMS,1024*RMS, 2048*RMS,4096*RMS]
+    return RMS, cont, cont1, cont2, cont3
+
+
+############################# - Get informations of the data - ###############################
+
+    
+def get_data(image):
+    with fits.open(image) as hdul:  # open a FITS file
+         data_orig = hdul[0].data
+    dat =np.squeeze(data_orig)   
+    return dat
+
+
+def get_header(image):
+    with fits.open(image) as hdul:
+        matrix = hdul[0].data
+        matrix= np.squeeze(matrix)
+        header=hdul[0].header
+    return header 
+
+
+def get_beam(image):
+    header = fits.getheader(image)
+    BMAJ=header['BMAJ']
+    BMIN=header['BMIN']
+    BPA=header['BPA']
+    return BMAJ, BMIN, BPA
+
+
+    
+def threesigma_flux(image_path):
+    RMS = []
+    Flux = []
+    max_iterations = 20
+    iteration_count = 0
+        
+    with fits.open(image_path) as hdul:
+        matrix = hdul[0].data
+        matrix = np.squeeze(matrix)    
+
+    while np.isnan(np.mean(RMS)):
+        rms_i, cont, cont1, cont2, cont3= calc_RMS(image_path)
+        if np.isnan(rms_i):
+            continue
+        FP_i = matrix
+        FP_i[np.where(matrix < rms_i)] = np.nan
+        
+        iteration_count += 1
+
+        if iteration_count >= max_iterations:
+            print("Reached the maximum number of iterations, breaking loop")
+            break
+
+    return FP_i
+
+
+
+############################# - Prozess Image - ###############################
+
+
+
+def plot_galaxy(galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field):
+    
+    if not os.path.exists(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/'):
+        os.makedirs(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/')
+    if not os.path.exists(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/Radio'):
+        os.makedirs(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/Radio')
+        
+    frequencies = [2100, 5500, 9000]
+    for freq in frequencies: 
+        fig = plt.figure(figsize=(7, 5))
+        iamage_path=f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/{freq}/{galaxy_name_small}.{freq}.pbc.fits'
+        data = Map.read(iamage_path)
+        cutout = data.cutout(position=SkyCoord(RA * u.deg, Dec * u.deg, frame="fk5"), width=0.1* u.deg)
+        cutout.write("cutout.fits",overwrite=True)
+    
+    
+        
+        FP_i = threesigma_flux("cutout.fits")
+        header = get_header("cutout.fits")
+        fits.writeto('cutout_new.fits', FP_i, header, overwrite=True)
+        
+        dat = get_data("cutout_new.fits")
+        s = calc_sigmas(dat)
+        
+        im = aplpy.FITSFigure("cutout_new.fits", figure=fig)
+        im.show_colorscale(vmin=s[0], vmax=s[1], cmap='gist_gray_r')
+        im.add_colorbar()
+        im.colorbar.set_width(0.3)
+        im.colorbar.set_axis_label_text(r'Flux (Jy/beam)')
+        im.colorbar.set_location('right')
+        
+        BMAJ, BMIN, BPA = get_beam(iamage_path)
+        b = aplpy.Beam(im)  
+        p = b._wcs.pixel_scale_matrix
+        b._wcs = b._wcs[0] 
+        b._wcs.is_celestial = True
+        b._wcs.pixel_scale_matrix = p
+        b.show(major=float(BMAJ),
+                minor=float(BMIN),
+                angle=float(BPA), facecolor='black', alpha=0.6, edgecolor='black')
+        
+        #http://arcsec2parsec.joseonorbe.com
+        if radius is None:
+            pass
+        else:
+            s = aplpy.Scalebar(im)
+            p = s._wcs.pixel_scale_matrix 
+            s._wcs = s._wcs[0] 
+            s._wcs.is_celestial = True 
+            s._wcs.pixel_scale_matrix = p
+            s.show(radius, '1 kpc', color='black', corner='top left')
+        
+        RMS, cont, cont1, cont2, cont3 = calc_RMS("cutout.fits")
+        
+        ax = im.ax
+        ax.tick_params(direction='in', which='both', color='black')
+        
+        im.show_contour("cutout.fits", levels=cont1, colors='green', linewidths=0.6)
+        im.show_contour("cutout.fits", levels=cont2, colors='magenta', linewidths=0.6)
+        im.show_contour("cutout.fits", levels=cont3, colors='white', linewidths=0.6)
+        
+        fig.canvas.draw() 
+        
+        im.recenter(RA, Dec, radius=cutout_field)
+        im.set_title(f'{galaxy_name} - {freq}MHz')
+        plt.savefig(f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/plots/Radio/{galaxy_name}_{freq}_StokesI.png', dpi=1200)
+
+
+
+
+
+
+
+### CHILLING Galaxies 
+
+# to plot individual galaxies
+
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='ESO154-G023', 'eso154-g023',  44.209917, -54.571417, 0.009960051685102687, 0.01
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='ESO245-G005', 'eso245-g005',  26.265571, -43.598036, 0.012605287122982246, 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='ESO383-G087', 'eso383-g087',  207.322917, -36.063444, 0.01797378994782475, 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='ESO572-G025', 'eso572-g025',  179.366800, -19.624057, None, 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='Fairall301', 'fairall301',  61.533000, -52.668417, 'None', 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='IC1959', 'ic1959',  53.302458, -50.414250, 0.008965314175730207, 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='IC4662', 'ic4662',  266.786944, -64.64176, 0.023494652782524016, 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='IC5152', 'ic5152',  330.672958, -51.296444, 0.029245222851152546, 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='ISZ399', 'isz399',  184.997958, -17.391944, 'None', 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='NGC244', 'ngc244',  11.443458, -15.596889 , 0.0008349463246182907, 0.01
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='NGC625', 'ngc625',  23.769292, -41.436194, 0.01470408438956842, 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='NGC1311', 'ngc1311',  50.029000, -52.185528 , 0.010299347292684582, 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='NGC5253', 'ngc5253',  204.983180, -31.640108 , 0.015210646080856151, 0.025
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='NGC5264', 'ngc5264',  205.402833, -29.913083	 , 0.0119994256679521, 0.02
+#galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field ='NGC5408', 'ngc5408',  210.837125, -41.377694 , 0.010782750886253393, 0.02
+
+#plot_galaxy(galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field)
+
+
+
+# to plot all galaxies in the same run
+
+galaxies = [
+    ('ESO154-G023', 'eso154-g023', 44.209917, -54.571417, 0.009960051685102687, 0.01),
+    ('ESO245-G005', 'eso245-g005', 26.265571, -43.598036, 0.012605287122982246, 0.02),
+    ('ESO383-G087', 'eso383-g087', 207.322917, -36.063444, 0.01797378994782475, 0.02),
+    ('ESO572-G025', 'eso572-g025', 179.366800, -19.624057, None, 0.02),
+    ('Fairall301', 'fairall301', 61.533000, -52.668417, None, 0.02),
+    ('IC1959', 'ic1959', 53.302458, -50.414250, 0.008965314175730207, 0.02),
+    ('IC4662', 'ic4662', 266.786944, -64.64176, 0.023494652782524016, 0.02),
+    ('IC5152', 'ic5152', 330.672958, -51.296444, 0.029245222851152546, 0.02),
+    ('ISZ399', 'isz399', 184.997958, -17.391944, None, 0.02),
+    ('NGC244', 'ngc244', 11.443458, -15.596889 , 0.0008349463246182907, 0.01),
+    ('NGC625', 'ngc625', 23.769292, -41.436194, 0.01470408438956842, 0.03),
+    ('NGC1311', 'ngc1311', 50.029000, -52.185528 , 0.010299347292684582, 0.02),
+    ('NGC5253', 'ngc5253', 204.983180, -31.640108 , 0.015210646080856151, 0.025),
+    ('NGC5264', 'ngc5264', 205.402833, -29.913083	 , 0.0119994256679521, 0.02),
+    ('NGC5408', 'ngc5408', 210.837125, -41.377694 , 0.010782750886253393, 0.02)
+]
+
+for galaxy in galaxies:
+    plot_galaxy(*galaxy)
+
+
