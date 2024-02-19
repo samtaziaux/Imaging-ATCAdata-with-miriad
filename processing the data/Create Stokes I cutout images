@@ -134,8 +134,8 @@ def plot_galaxy(galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field):
     frequencies = [2100, 5500, 9000]
     for freq in frequencies: 
         fig = plt.figure(figsize=(7, 5))
-        iamage_path=f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/{freq}/{galaxy_name_small}.{freq}.pbc.fits'
-        data = Map.read(iamage_path)
+        image_path=f'/Volumes/Extreme SSD/CHILLING/{galaxy_name}/{galaxy_name_small}_ms/{freq}/{galaxy_name_small}.{freq}.pbc.fits'
+        data = Map.read(image_path)
         cutout = data.cutout(position=SkyCoord(RA * u.deg, Dec * u.deg, frame="fk5"), width=0.1* u.deg)
         cutout.write("cutout.fits",overwrite=True)
     
@@ -155,7 +155,7 @@ def plot_galaxy(galaxy_name, galaxy_name_small, RA, Dec, radius, cutout_field):
         im.colorbar.set_axis_label_text(r'Flux (Jy/beam)')
         im.colorbar.set_location('right')
         
-        BMAJ, BMIN, BPA = get_beam(iamage_path)
+        BMAJ, BMIN, BPA = get_beam(image_path)
         b = aplpy.Beam(im)  
         p = b._wcs.pixel_scale_matrix
         b._wcs = b._wcs[0] 
